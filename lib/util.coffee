@@ -34,7 +34,7 @@ module.exports = (grunt) ->
         grunt.log.writeln 'Not expanding artifact.'
         spawnCmd = 
           cmd: 'echo'
-          args: 'Not expanding artifact.'
+          args: [ 'Not expanding artifact.' ]
       else if artifact.ext is 'tgz'
         spawnCmd =
           cmd: 'tar'
