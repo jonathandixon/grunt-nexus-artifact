@@ -42,7 +42,7 @@ module.exports = (grunt) ->
       else if artifact.ext in [ 'zip', 'jar' ]
         spawnCmd =
           cmd : 'unzip',
-          args: "#{temp_path} -d #{path}".split(' ')
+          args: "-o #{temp_path} -d #{path}".split(' ')
       else
         msg = "Unknown artifact extension (#{artifact.ext}), could not extract it"
         deferred.reject msg
