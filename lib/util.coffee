@@ -22,7 +22,7 @@ module.exports = (grunt) ->
     #   res.on 'end', ->
     grunt.util.spawn
       cmd: 'curl'
-      args: "-o #{temp_path} #{artifact.buildUrl()}".split(' ')
+      args: "-k -o #{temp_path} #{artifact.buildUrl()}".split(' ')
     , (err, stdout, stderr) ->
       if err
         deferred.reject err
