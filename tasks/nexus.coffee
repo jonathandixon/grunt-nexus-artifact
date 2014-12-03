@@ -20,6 +20,8 @@ module.exports = (grunt) ->
       username: ''
       password: ''
       curl: false
+			expand: true
+      cacert: ''
 
     processes = []
 
@@ -32,7 +34,7 @@ module.exports = (grunt) ->
 
         artifact = new NexusArtifact cfg
 
-        processes.push util.download(artifact, cfg.path, cfg.expand)
+        processes.push util.download(artifact, cfg.path, cfg.expand, cfg.cacert)
 
     if @args.length and _.contains @args, 'publish'
       _.each options.publish, (cfg) =>
@@ -55,7 +57,7 @@ module.exports = (grunt) ->
 
         artifact = new NexusArtifact newConfig
 
-        processes.push util.verify(artifact, newConfig.path)
+        processes.push util.verify(artifact, newConfig.path, cfg.expand, cfg.cacert)
 
     Q.all(processes).then(() ->
       done()

@@ -8,8 +8,10 @@ module.exports = (grunt) ->
 
   compress = require('grunt-contrib-compress/tasks/lib/compress')(grunt)
 
-  downloadFile = (artifact, path, temp_path, expand) ->
+  downloadFile = (artifact, path, temp_path, expand, cacert) ->
     deferred = Q.defer()
+
+    curl_cert_opt = if cacert then "--cacert #{cacert}" else ''
 
     # http.get artifact.buildUrl(), (res) ->
 
@@ -22,7 +24,7 @@ module.exports = (grunt) ->
     #   res.on 'end', ->
     grunt.util.spawn
       cmd: 'curl'
-      args: "-k -o #{temp_path} #{artifact.buildUrl()}".split(' ')
+      args: "#{curl_cert_opt} -o #{temp_path} #{artifact.buildUrl()}".split(' ')
     , (err, stdout, stderr) ->
       if err
         deferred.reject err
@@ -161,7 +163,7 @@ module.exports = (grunt) ->
   *
   * @return {Promise} returns a Q promise to be resolved when the file is done downloading
   ###
-  download: (artifact, path, expand = true) ->
+  download: (artifact, path, expand, cacert) ->
     deferred = Q.defer()
 
     filePath = "#{path}/.downloadedArtifacts"
@@ -176,7 +178,7 @@ module.exports = (grunt) ->
     temp_path = "#{path}/#{artifact.buildArtifactUri()}"
     grunt.log.writeln "Downloading #{artifact.buildUrl()}"
 
-    downloadFile(artifact, path, temp_path, expand).then( ->
+    downloadFile(artifact, path, temp_path, expand, cacert).then( ->
       deferred.resolve(temp_path)
     ).fail (error) ->
       deferred.reject error
@@ -214,11 +216,11 @@ module.exports = (grunt) ->
   *
   * @return {Promise} returns a Q promise to be resolved when the artifact is done being downloaded & unpacked
   ###
-  verify: (artifact, path) ->
+  verify: (artifact, path, expand, cacert) ->
 
     deferred = Q.defer()
 
-    @download(artifact, path).then( () ->
+    @download(artifact, path, expand, cacert).then( () ->
         grunt.log.writeln "Download and unpack of archive successful"
         deferred.resolve()
       ).fail ( (err) ->
