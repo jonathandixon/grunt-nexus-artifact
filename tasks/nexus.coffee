@@ -20,7 +20,7 @@ module.exports = (grunt) ->
       username: ''
       password: ''
       curl: false
-			expand: true
+      expand: true
       cacert: ''
 
     processes = []
@@ -44,7 +44,7 @@ module.exports = (grunt) ->
         _.extend artifactCfg, options
 
         artifact = new NexusArtifact artifactCfg
-        processes.push util.publish(artifact, @files, { path: cfg.path, curl: options.curl, credentials: { username: options.username, password: options.password }})
+        processes.push util.publish(artifact, @files, { path: cfg.path, curl: options.curl, credentials: { username: options.username, password: options.password }, cacert: options.cacert })
 
     if @args.length and _.contains @args, 'verify'
       _.each options.verify, (cfg) =>

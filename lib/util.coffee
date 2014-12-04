@@ -65,15 +65,17 @@ module.exports = (grunt) ->
 
     deferred.promise
 
-  uploadCurl = (filename, url, credentials) ->
+  uploadCurl = (data, url, credentials, isFile, cacert) ->
     deferred = Q.defer()
     authStr = if credentials.username then "-u #{credentials.username}:#{credentials.password}"  else ''
+    certStr = if cacert then "--cacert #{cacert}" else ''
+    uploadOpt = if isFile then '-T' else '-d'
 
     grunt.util.spawn
       cmd: 'curl'
-      args: "-T #{filename} #{authStr} #{url}".split ' '
+      args: "#{certStr} #{uploadOpt} #{data} #{authStr} #{url}".split ' '
     , (err, result, code) ->
-      grunt.log.writeln "Uploaded #{filename.cyan}"
+      grunt.log.writeln "Uploaded #{data.cyan}"
       deferred.reject err if err
 
       deferred.resolve()
@@ -117,9 +119,9 @@ module.exports = (grunt) ->
       uploadFn = if options.curl then uploadCurl else upload
 
       promises = [
-        uploadFn options.path + filename, url, options.credentials
-        upload hashes.sha1, "#{url}.sha1", options.credentials, false
-        upload hashes.md5, "#{url}.md5", options.credentials, false
+        uploadFn options.path + filename, url, options.credentials, true, options.cacert
+        uploadFn hashes.sha1, "#{url}.sha1", options.credentials, false, options.cacert
+        uploadFn hashes.md5, "#{url}.md5", options.credentials, false, options.cacert
       ]
 
       Q.all(promises).then () ->
