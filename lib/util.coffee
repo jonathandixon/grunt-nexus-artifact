@@ -34,7 +34,7 @@ module.exports = (grunt) ->
 
       if expand is false
         grunt.log.writeln 'Not expanding artifact.'
-        spawnCmd = 
+        spawnCmd =
           cmd: 'echo'
           args: [ 'Not expanding artifact.' ]
       else if artifact.ext is 'tgz'
@@ -52,7 +52,7 @@ module.exports = (grunt) ->
       grunt.util.spawn spawnCmd, (err, stdout, stderr) ->
         grunt.file.delete temp_path if expand
 
-        if err
+        if err and spawnCmd.cmd != 'echo'
           deferred.reject err
           return
 
