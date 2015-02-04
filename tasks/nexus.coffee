@@ -34,30 +34,27 @@ module.exports = (grunt) ->
 
         artifact = new NexusArtifact cfg
 
-        processes.push util.download(artifact, cfg.path, cfg.expand, cfg.cacert)
+        processes.push util.download(artifact, { path: cfg.path, expand: cfg.expand, credentials: { username: cfg.username, password: cfg.password }, cacert: cfg.cacert })
 
     if @args.length and _.contains @args, 'publish'
       _.each options.publish, (cfg) =>
-        artifactCfg = {}
-        _.extend artifactCfg, NexusArtifact.fromString(cfg.id), cfg if cfg.id
+        _.extend cfg, NexusArtifact.fromString(cfg.id), cfg if cfg.id
 
-        _.extend artifactCfg, options
+        _.extend cfg, options
 
-        artifact = new NexusArtifact artifactCfg
-        processes.push util.publish(artifact, @files, { path: cfg.path, curl: options.curl, credentials: { username: options.username, password: options.password }, cacert: options.cacert })
+        artifact = new NexusArtifact cfg
+        processes.push util.publish(artifact, @files, { path: cfg.path, curl: cfg.curl, credentials: { username: cfg.username, password: cfg.password }, cacert: cfg.cacert })
 
     if @args.length and _.contains @args, 'verify'
       _.each options.verify, (cfg) =>
 
-        newConfig = NexusArtifact.fromString(cfg.id)
+        _.extend cfg, NexusArtifact.fromString(cfg.id) if cfg.id
 
-        _.extend newConfig, cfg
+        _.extend cfg, options
 
-        _.extend newConfig, options
+        artifact = new NexusArtifact cfg
 
-        artifact = new NexusArtifact newConfig
-
-        processes.push util.verify(artifact, newConfig.path, cfg.expand, cfg.cacert)
+        processes.push util.verify(artifact, { path: cfg.path, expand: cfg.expand, credentials: { username: cfg.username, password: cfg.password }, cacert: cfg.cacert })
 
     Q.all(processes).then(() ->
       done()

@@ -8,10 +8,11 @@ module.exports = (grunt) ->
 
   compress = require('grunt-contrib-compress/tasks/lib/compress')(grunt)
 
-  downloadFile = (artifact, path, temp_path, expand, cacert) ->
+  downloadFile = (artifact, temp_path, options) ->
     deferred = Q.defer()
 
-    curl_cert_opt = if cacert then "--cacert #{cacert}" else ''
+    curl_cert_opt = if options.cacert then "--cacert #{options.cacert}" else ''
+    curl_auth_opt = if options.credentials.username then "-u #{options.credentials.username}:#{options.credentials.password}"  else ''
 
     # http.get artifact.buildUrl(), (res) ->
 
@@ -24,7 +25,7 @@ module.exports = (grunt) ->
     #   res.on 'end', ->
     grunt.util.spawn
       cmd: 'curl'
-      args: "#{curl_cert_opt} -o #{temp_path} #{artifact.buildUrl()}".split(' ')
+      args: "#{curl_cert_opt} #{curl_auth_opt} -o #{temp_path} #{artifact.buildUrl()}".split(' ')
     , (err, stdout, stderr) ->
       if err
         deferred.reject err
@@ -32,7 +33,7 @@ module.exports = (grunt) ->
 
       spawnCmd = {}
 
-      if expand is false
+      if options.expand is false
         grunt.log.writeln 'Not expanding artifact.'
         spawnCmd =
           cmd: 'echo'
@@ -40,23 +41,23 @@ module.exports = (grunt) ->
       else if artifact.ext is 'tgz'
         spawnCmd =
           cmd: 'tar'
-          args: "zxf #{temp_path} -C #{path}".split ' '
+          args: "zxf #{temp_path} -C #{options.path}".split ' '
       else if artifact.ext in [ 'zip', 'jar' ]
         spawnCmd =
           cmd : 'unzip',
-          args: "-o #{temp_path} -d #{path}".split(' ')
+          args: "-o #{temp_path} -d #{options.path}".split(' ')
       else
         msg = "Unknown artifact extension (#{artifact.ext}), could not extract it"
         deferred.reject msg
 
       grunt.util.spawn spawnCmd, (err, stdout, stderr) ->
-        grunt.file.delete temp_path if expand
+        grunt.file.delete temp_path if options.expand
 
         if err and spawnCmd.cmd != 'echo'
           deferred.reject err
           return
 
-        filePath = "#{path}/.downloadedArtifacts"
+        filePath = "#{options.path}/.downloadedArtifacts"
         downloadedArtifacts = if grunt.file.exists(filePath) then grunt.file.readJSON(filePath) else {}
         downloadedArtifacts[artifact.toString()] = new Date()
         grunt.file.write filePath, JSON.stringify(downloadedArtifacts)
@@ -165,22 +166,22 @@ module.exports = (grunt) ->
   *
   * @return {Promise} returns a Q promise to be resolved when the file is done downloading
   ###
-  download: (artifact, path, expand, cacert) ->
+  download: (artifact, options) ->
     deferred = Q.defer()
 
-    filePath = "#{path}/.downloadedArtifacts"
+    filePath = "#{options.path}/.downloadedArtifacts"
     if grunt.file.exists(filePath)
       downloadedArtifacts = grunt.file.readJSON(filePath)
       if downloadedArtifacts[artifact.toString()]
         grunt.log.writeln "Up-to-date: #{artifact}"
         return
 
-    grunt.file.mkdir path
+    grunt.file.mkdir options.path
 
-    temp_path = "#{path}/#{artifact.buildArtifactUri()}"
+    temp_path = "#{options.path}/#{artifact.buildArtifactUri()}"
     grunt.log.writeln "Downloading #{artifact.buildUrl()}"
 
-    downloadFile(artifact, path, temp_path, expand, cacert).then( ->
+    downloadFile(artifact, temp_path, options).then( ->
       deferred.resolve(temp_path)
     ).fail (error) ->
       deferred.reject error
@@ -218,11 +219,11 @@ module.exports = (grunt) ->
   *
   * @return {Promise} returns a Q promise to be resolved when the artifact is done being downloaded & unpacked
   ###
-  verify: (artifact, path, expand, cacert) ->
+  verify: (artifact, options) ->
 
     deferred = Q.defer()
 
-    @download(artifact, path, expand, cacert).then( () ->
+    @download(artifact, options).then( () ->
         grunt.log.writeln "Download and unpack of archive successful"
         deferred.resolve()
       ).fail ( (err) ->
