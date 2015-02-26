@@ -21,6 +21,7 @@ module.exports = (grunt) ->
       password: ''
       curl: false
       expand: true
+      delete: true
       cacert: ''
 
     processes = []
@@ -32,9 +33,11 @@ module.exports = (grunt) ->
 
         _.extend cfg, options
 
+        cfg.expandPath ?= cfg.path
+
         artifact = new NexusArtifact cfg
 
-        processes.push util.download(artifact, { path: cfg.path, expand: cfg.expand, credentials: { username: cfg.username, password: cfg.password }, cacert: cfg.cacert })
+        processes.push util.download(artifact, cfg)
 
     if @args.length and _.contains @args, 'publish'
       _.each options.publish, (cfg) =>
@@ -43,7 +46,7 @@ module.exports = (grunt) ->
         _.extend cfg, options
 
         artifact = new NexusArtifact cfg
-        processes.push util.publish(artifact, @files, { path: cfg.path, curl: cfg.curl, credentials: { username: cfg.username, password: cfg.password }, cacert: cfg.cacert })
+        processes.push util.publish(artifact, @files, cfg)
 
     if @args.length and _.contains @args, 'verify'
       _.each options.verify, (cfg) =>
@@ -54,7 +57,7 @@ module.exports = (grunt) ->
 
         artifact = new NexusArtifact cfg
 
-        processes.push util.verify(artifact, { path: cfg.path, expand: cfg.expand, credentials: { username: cfg.username, password: cfg.password }, cacert: cfg.cacert })
+        processes.push util.verify(artifact, cfg)
 
     Q.all(processes).then(() ->
       done()

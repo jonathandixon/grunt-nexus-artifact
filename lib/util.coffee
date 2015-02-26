@@ -12,7 +12,7 @@ module.exports = (grunt) ->
     deferred = Q.defer()
 
     curl_cert_opt = if options.cacert then "--cacert #{options.cacert}" else ''
-    curl_auth_opt = if options.credentials.username then "-u #{options.credentials.username}:#{options.credentials.password}"  else ''
+    curl_auth_opt = if options.username then "-u #{options.username}:#{options.password}"  else ''
 
     # http.get artifact.buildUrl(), (res) ->
 
@@ -41,17 +41,17 @@ module.exports = (grunt) ->
       else if artifact.ext is 'tgz'
         spawnCmd =
           cmd: 'tar'
-          args: "zxf #{temp_path} -C #{options.path}".split ' '
+          args: "zxf #{temp_path} -C #{options.expandPath}".split ' '
       else if artifact.ext in [ 'zip', 'jar' ]
         spawnCmd =
           cmd : 'unzip',
-          args: "-o #{temp_path} -d #{options.path}".split(' ')
+          args: "-o #{temp_path} -d #{options.expandPath}".split(' ')
       else
         msg = "Unknown artifact extension (#{artifact.ext}), could not extract it"
         deferred.reject msg
 
       grunt.util.spawn spawnCmd, (err, stdout, stderr) ->
-        grunt.file.delete temp_path if options.expand
+        grunt.file.delete temp_path if options.delete
 
         if err and spawnCmd.cmd != 'echo'
           deferred.reject err
@@ -115,14 +115,17 @@ module.exports = (grunt) ->
     generateHashes(options.path + filename).then (hashes) ->
 
       url = urlPath + filename
+      credentials =
+        username: options.username
+        password: options.password
 
       # allow upload through curl
       uploadFn = if options.curl then uploadCurl else upload
 
       promises = [
-        uploadFn options.path + filename, url, options.credentials, true, options.cacert
-        uploadFn hashes.sha1, "#{url}.sha1", options.credentials, false, options.cacert
-        uploadFn hashes.md5, "#{url}.md5", options.credentials, false, options.cacert
+        uploadFn options.path + filename, url, credentials, true, options.cacert
+        uploadFn hashes.sha1, "#{url}.sha1", credentials, false, options.cacert
+        uploadFn hashes.md5, "#{url}.md5", credentials, false, options.cacert
       ]
 
       Q.all(promises).then () ->
