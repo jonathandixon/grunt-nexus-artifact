@@ -51,7 +51,7 @@ module.exports = (grunt) ->
         deferred.reject msg
 
       grunt.util.spawn spawnCmd, (err, stdout, stderr) ->
-        grunt.file.delete temp_path if options.delete
+        grunt.file.delete temp_path if options.expand and options.delete
 
         if err and spawnCmd.cmd != 'echo'
           deferred.reject err
