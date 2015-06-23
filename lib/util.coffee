@@ -160,6 +160,39 @@ module.exports = (grunt) ->
 
     deferred.promise
 
+  shouldDownloadFile = (artifact, options) ->
+    deferred = Q.defer()
+    filePath = "#{options.path}/.downloadedArtifacts"
+    downloadedArtifacts = if grunt.file.exists(filePath) then grunt.file.readJSON(filePath) else {}
+
+    if downloadedArtifacts[artifact.toString()]
+      if artifact.toString().indexOf('SNAPSHOT') > 0
+        curl_cert_opt = if options.cacert then "--cacert #{options.cacert}" else ''
+        curl_auth_opt = if options.username then "-u #{options.username}:#{options.password}"  else ''
+
+        grunt.util.spawn
+          cmd: 'curl'
+          args: "#{curl_cert_opt} #{curl_auth_opt} -I #{artifact.buildUrl()}".split(' ')
+        , (err, stdout, stderr) ->
+          if err
+            deferred.reject err
+            return
+
+          # Check Last Modified date of SNAPSHOT.
+          lastModified = String(stdout).match /Last-Modified:\s*(.*)/
+          if lastModified and new Date(downloadedArtifacts[artifact.toString()]) < new Date(lastModified[1])
+            deferred.resolve true
+          else
+            deferred.resolve false
+      else
+        # Current version of artifact has already been downloaded.
+        deferred.resolve false
+    else
+      # No record of download.
+      deferred.resolve true
+
+    deferred.promise
+
   return {
 
   ###*
@@ -172,20 +205,21 @@ module.exports = (grunt) ->
   download: (artifact, options) ->
     deferred = Q.defer()
 
-    filePath = "#{options.path}/.downloadedArtifacts"
-    if grunt.file.exists(filePath)
-      downloadedArtifacts = grunt.file.readJSON(filePath)
-      if downloadedArtifacts[artifact.toString()]
+    shouldDownloadFile(artifact, options).then( (doDownload) ->
+      temp_path = "#{options.path}/#{artifact.buildArtifactUri()}"
+
+      if doDownload
+        grunt.file.mkdir options.path
+
+        grunt.log.writeln "Downloading #{artifact.buildUrl()}"
+
+        downloadFile(artifact, temp_path, options).then( ->
+          deferred.resolve temp_path
+        ).fail (error) ->
+          deferred.reject error
+      else
         grunt.log.writeln "Up-to-date: #{artifact}"
-        return
-
-    grunt.file.mkdir options.path
-
-    temp_path = "#{options.path}/#{artifact.buildArtifactUri()}"
-    grunt.log.writeln "Downloading #{artifact.buildUrl()}"
-
-    downloadFile(artifact, temp_path, options).then( ->
-      deferred.resolve(temp_path)
+        deferred.resolve temp_path
     ).fail (error) ->
       deferred.reject error
 
