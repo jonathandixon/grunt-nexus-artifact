@@ -30,8 +30,7 @@ module.exports = (grunt) ->
       _.each options.fetch, (cfg) ->
         # get the base nexus path
         _.extend cfg, NexusArtifact.fromString(cfg.id) if cfg.id
-
-        _.extend cfg, options
+        _.extend cfg, options, cfg
 
         cfg.expandPath ?= cfg.path
 
@@ -41,19 +40,18 @@ module.exports = (grunt) ->
 
     if @args.length and _.contains @args, 'publish'
       _.each options.publish, (cfg) =>
-        _.extend cfg, NexusArtifact.fromString(cfg.id), cfg if cfg.id
-
-        _.extend cfg, options
+        _.extend cfg, NexusArtifact.fromString(cfg.id) if cfg.id
+        _.extend cfg, options, cfg
 
         artifact = new NexusArtifact cfg
+
         processes.push util.publish(artifact, @files, cfg)
 
     if @args.length and _.contains @args, 'verify'
       _.each options.verify, (cfg) =>
 
         _.extend cfg, NexusArtifact.fromString(cfg.id) if cfg.id
-
-        _.extend cfg, options
+        _.extend cfg, options, cfg
 
         artifact = new NexusArtifact cfg
 
