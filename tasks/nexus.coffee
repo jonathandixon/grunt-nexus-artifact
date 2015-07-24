@@ -23,6 +23,7 @@ module.exports = (grunt) ->
       expand: true
       delete: true
       cacert: ''
+      ignoreUnpackError: false
 
     processes = []
 

@@ -50,12 +50,16 @@ module.exports = (grunt) ->
         msg = "Unknown artifact extension (#{artifact.ext}), could not extract it"
         deferred.reject msg
 
-      grunt.util.spawn spawnCmd, (err, stdout, stderr) ->
+      grunt.util.spawn spawnCmd, (err, result, code) ->
         grunt.file.delete temp_path if options.expand and options.delete
 
         if err and spawnCmd.cmd != 'echo'
-          deferred.reject err
-          return
+          if options.ignoreUnpackError
+            msg = String(err.message || err);
+            grunt.log.error msg
+          else
+            deferred.reject err
+            return
 
         filePath = "#{options.path}/.downloadedArtifacts"
         downloadedArtifacts = if grunt.file.exists(filePath) then grunt.file.readJSON(filePath) else {}
